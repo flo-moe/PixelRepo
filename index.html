@@ -62,12 +62,6 @@
             color: #8b949e;
         }
 
-        .brush-inputs {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
         .tool-select {
             display: flex;
             gap: 8px;
@@ -101,17 +95,6 @@
         input[type="range"] {
             cursor: pointer;
             accent-color: #2ea44f;
-        }
-
-        input[type="number"] {
-            background-color: #21262d;
-            color: #c9d1d9;
-            border: 1px solid #30363d;
-            padding: 6px;
-            border-radius: 6px;
-            width: 50px;
-            text-align: center;
-            font-weight: 600;
         }
 
         select {
@@ -202,11 +185,8 @@
         </div>
 
         <div class="control-group">
-            <label>Pinselgrösse (Pixel):</label>
-            <div class="brush-inputs">
-                <input type="range" id="sizeSlider" min="1" max="16" value="1">
-                <input type="number" id="sizeInput" min="1" max="16" value="1">
-            </div>
+            <label for="sizeSlider">Pinselgrösse: <span id="sizeDisplay">1</span></label>
+            <input type="range" id="sizeSlider" min="1" max="4" value="1">
         </div>
 
         <div class="control-group">
@@ -219,7 +199,7 @@
         </div>
 
         <div class="btn-container">
-            <button id="clearBtn">Ganzes Feld leeren</button>
+            <button id="clearBtn">Raster leeren</button>
             <button id="saveBtn">Bild speichern (.png)</button>
         </div>
     </div>
@@ -232,7 +212,7 @@
         const canvas = document.getElementById('pixelCanvas');
         const colorPicker = document.getElementById('colorPicker');
         const sizeSlider = document.getElementById('sizeSlider');
-        const sizeInput = document.getElementById('sizeInput');
+        const sizeDisplay = document.getElementById('sizeDisplay');
         const gridSizeSelect = document.getElementById('gridSizeSelect');
         const clearBtn = document.getElementById('clearBtn');
         const saveBtn = document.getElementById('saveBtn');
@@ -244,6 +224,7 @@
         let currentTool = 'pen'; 
         const CANVAS_DISPLAY_SIZE = 512;
 
+        // Werkzeugauswahl umschalten
         penTool.addEventListener('click', () => {
             currentTool = 'pen';
             penTool.classList.add('active');
@@ -256,17 +237,14 @@
             penTool.classList.remove('active');
         });
 
-        function updateBrushSize(value) {
-            let size = Math.max(1, Math.min(16, parseInt(value) || 1));
-            sizeSlider.value = size;
-            sizeInput.value = size;
-        }
+        // Schieberegler-Zahl updaten
+        sizeSlider.addEventListener('input', () => {
+            sizeDisplay.textContent = sizeSlider.value;
+        });
 
-        sizeSlider.addEventListener('input', (e) => updateBrushSize(e.target.value));
-        sizeInput.addEventListener('input', (e) => updateBrushSize(e.target.value));
-
+        // Funktion zum Zeichnen oder Löschen
         function draw(targetX, targetY) {
-            const brushSize = parseInt(sizeInput.value);
+            const brushSize = parseInt(sizeSlider.value);
             const color = currentTool === 'eraser' ? 'transparent' : colorPicker.value;
 
             for (let dx = 0; dx < brushSize; dx++) {
@@ -284,6 +262,7 @@
             }
         }
 
+        // Raster generieren
         function buildGrid() {
             canvas.innerHTML = '';
             gridSize = parseInt(gridSizeSelect.value);
@@ -324,17 +303,19 @@
             downloadCanvas.height = CANVAS_DISPLAY_SIZE;
             const ctx = downloadCanvas.getContext('2d');
             
-const pixelSize = CANVAS_DISPLAY_SIZE / gridSize;
-for (let y = 0; y < gridSize; y++) {
-for (let x = 0; x < gridSize; x++) {
-const pixel = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
-if (pixel && pixel.style.backgroundColor && pixel.style.backgroundColor !== 'transparent') {
-ctx.fillStyle = pixel.style.backgroundColor;
-ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
-}
-}
-}
-const link = document.createElement('a');
+            const pixelSize = CANVAS_DISPLAY_SIZE / gridSize;
+
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    const pixel = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+                    if (pixel && pixel.style.backgroundColor && pixel.style.backgroundColor !== 'transparent') {
+                        ctx.fillStyle = pixel.style.backgroundColor;
+                        ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+                    }
+                }
+            }
+
+            const link = document.createElement('a');
 link.download = 'pixelrepo-art.png';
 link.href = downloadCanvas.toDataURL('image/png');
 link.click();
