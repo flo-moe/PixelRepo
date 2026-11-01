@@ -62,27 +62,6 @@
             color: #8b949e;
         }
 
-        .tool-select {
-            display: flex;
-            gap: 8px;
-        }
-
-        .tool-btn {
-            background-color: #21262d;
-            border: 1px solid #30363d;
-            color: #c9d1d9;
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .tool-btn.active {
-            background-color: #2ea44f;
-            color: white;
-            border-color: #238636;
-        }
-
         input[type="color"] {
             border: none;
             width: 40px;
@@ -172,14 +151,6 @@
     
     <div class="controls">
         <div class="control-group">
-            <label>Werkzeug:</label>
-            <div class="tool-select">
-                <button type="button" id="penTool" class="tool-btn active">✏️ Stift</button>
-                <button type="button" id="eraserTool" class="tool-btn">🧼 Radierer</button>
-            </div>
-        </div>
-
-        <div class="control-group">
             <label for="colorPicker">Farbe:</label>
             <input type="color" id="colorPicker" value="#00ffcc">
         </div>
@@ -216,36 +187,19 @@
         const gridSizeSelect = document.getElementById('gridSizeSelect');
         const clearBtn = document.getElementById('clearBtn');
         const saveBtn = document.getElementById('saveBtn');
-        
-        const penTool = document.getElementById('penTool');
-        const eraserTool = document.getElementById('eraserTool');
 
         let gridSize = parseInt(gridSizeSelect.value);
-        let currentTool = 'pen'; 
-        const CANVAS_DISPLAY_SIZE = 512;
-
-        // Werkzeugauswahl umschalten
-        penTool.addEventListener('click', () => {
-            currentTool = 'pen';
-            penTool.classList.add('active');
-            eraserTool.classList.remove('active');
-        });
-
-        eraserTool.addEventListener('click', () => {
-            currentTool = 'eraser';
-            eraserTool.classList.add('active');
-            penTool.classList.remove('active');
-        });
+        const CANVAS_DISPLAY_SIZE = 512; // Das Zeichenfeld bleibt immer 512x512 Pixel gross im Browser
 
         // Schieberegler-Zahl updaten
         sizeSlider.addEventListener('input', () => {
             sizeDisplay.textContent = sizeSlider.value;
         });
 
-        // Funktion zum Zeichnen oder Löschen
+        // Funktion zum Zeichnen
         function draw(targetX, targetY) {
             const brushSize = parseInt(sizeSlider.value);
-            const color = currentTool === 'eraser' ? 'transparent' : colorPicker.value;
+            const color = colorPicker.value;
 
             for (let dx = 0; dx < brushSize; dx++) {
                 for (let dy = 0; dy < brushSize; dy++) {
@@ -267,6 +221,7 @@
             canvas.innerHTML = '';
             gridSize = parseInt(gridSizeSelect.value);
             
+            // Berechne die Grösse der einzelnen Kästchen
             const pixelSize = CANVAS_DISPLAY_SIZE / gridSize;
             
             canvas.style.gridTemplateColumns = `repeat(${gridSize}, ${pixelSize}px)`;
@@ -291,14 +246,18 @@
             }
         }
 
+        // Event-Listener für Feldgrösseränderung
         gridSizeSelect.addEventListener('change', buildGrid);
 
+        // Raster leeren
         clearBtn.addEventListener('click', () => {
             document.querySelectorAll('.pixel').forEach(p => p.style.backgroundColor = 'transparent');
         });
 
+        // Bild als echtes PNG exportieren und downloaden
         saveBtn.addEventListener('click', () => {
             const downloadCanvas = document.createElement('canvas');
+            // Wir speichern das Bild in einer knackigen 512x512 Auflösung ab
             downloadCanvas.width = CANVAS_DISPLAY_SIZE;
             downloadCanvas.height = CANVAS_DISPLAY_SIZE;
             const ctx = downloadCanvas.getContext('2d');
@@ -310,14 +269,21 @@
                     const pixel = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
                     if (pixel && pixel.style.backgroundColor && pixel.style.backgroundColor !== 'transparent') {
                         ctx.fillStyle = pixel.style.backgroundColor;
+                        // Zeichnet das Pixel ohne Lücken auf das versteckte Canvas
                         ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
                     }
                 }
             }
 
+            // Download auslösen
             const link = document.createElement('a');
-link.download = 'pixelrepo-art.png';
-link.href = downloadCanvas.toDataURL('image/png');
-link.click();
-});
-buildGrid();
+            link.download = 'pixelrepo-art.png';
+            link.href = downloadCanvas.toDataURL('image/png');
+            link.click();
+        });
+
+        // Initialer Start
+        buildGrid();
+    </script>
+</body>
+</html>
