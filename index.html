@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixelRepo - Mein eigener Pixel-Editor</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            color: #ffffff;
+            letter-spacing: 1px;
+        }
+
+        h1 span {
+            color: #2ea44f;
+        }
+
+        .author {
+            margin: 5px 0 20px 0;
+            color: #8b949e;
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+
+        .controls {
+            margin-bottom: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            background-color: #161b22;
+            padding: 15px 25px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 0.85rem;
+            color: #8b949e;
+        }
+
+        input[type="color"] {
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: none;
+        }
+
+        input[type="range"] {
+            cursor: pointer;
+            accent-color: #2ea44f;
+        }
+
+        select {
+            background-color: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background-color: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-weight: 600;
+            border-radius: 6px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background-color: #30363d;
+            border-color: #8b949e;
+        }
+
+        #saveBtn {
+            background-color: #2ea44f;
+            color: #ffffff;
+            border: 1px solid #238636;
+        }
+
+        #saveBtn:hover {
+            background-color: #3fb950;
+        }
+
+        .canvas-container {
+            position: relative;
+        }
+
+        .canvas {
+            display: grid;
+            border: 6px solid #30363d;
+            border-radius: 8px;
+            background-color: #111111;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        .pixel {
+            background-color: transparent;
+            border: 1px solid rgba(48, 54, 61, 0.2);
+            box-sizing: border-box;
+            cursor: crosshair;
+        }
+
+        .pixel:hover {
+            filter: brightness(1.4);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="logo-container">
+        <h1>PixelRepo<span>.art</span></h1>
+        <div class="author">Created by Floflo</div>
+    </div>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label for="colorPicker">Farbe:</label>
+            <input type="color" id="colorPicker" value="#00ffcc">
+        </div>
+
+        <div class="control-group">
+            <label for="sizeSlider">Pinselgrösse: <span id="sizeDisplay">1</span></label>
+            <input type="range" id="sizeSlider" min="1" max="4" value="1">
+        </div>
+
+        <div class="control-group">
+            <label for="gridSizeSelect">Feldgrösse:</label>
+            <select id="gridSizeSelect">
+                <option value="16">16 x 16 (Retro)</option>
+                <option value="32" selected>32 x 32 (Standard)</option>
+                <option value="64">64 x 64 (Detailreich)</option>
+            </select>
+        </div>
+
+        <div class="btn-container">
+            <button id="clearBtn">Raster leeren</button>
+            <button id="saveBtn">Bild speichern (.png)</button>
+        </div>
+    </div>
+    
+    <div class="canvas-container">
+        <div id="pixelCanvas" class="canvas"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('pixelCanvas');
+        const colorPicker = document.getElementById('colorPicker');
+        const sizeSlider = document.getElementById('sizeSlider');
+        const sizeDisplay = document.getElementById('sizeDisplay');
+        const gridSizeSelect = document.getElementById('gridSizeSelect');
+        const clearBtn = document.getElementById('clearBtn');
+        const saveBtn = document.getElementById('saveBtn');
+
+        let gridSize = parseInt(gridSizeSelect.value);
+        const CANVAS_DISPLAY_SIZE = 512; // Das Zeichenfeld bleibt immer 512x512 Pixel gross im Browser
+
+        // Schieberegler-Zahl updaten
+        sizeSlider.addEventListener('input', () => {
+            sizeDisplay.textContent = sizeSlider.value;
+        });
+
+        // Funktion zum Zeichnen
+        function draw(targetX, targetY) {
+            const brushSize = parseInt(sizeSlider.value);
+            const color = colorPicker.value;
+
+            for (let dx = 0; dx < brushSize; dx++) {
+                for (let dy = 0; dy < brushSize; dy++) {
+                    const x = targetX + dx;
+                    const y = targetY + dy;
+
+                    if (x < gridSize && y < gridSize) {
+                        const targetPixel = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+                        if (targetPixel) {
+                            targetPixel.style.backgroundColor = color;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Raster generieren
+        function buildGrid() {
+            canvas.innerHTML = '';
+            gridSize = parseInt(gridSizeSelect.value);
+            
+            // Berechne die Grösse der einzelnen Kästchen
+            const pixelSize = CANVAS_DISPLAY_SIZE / gridSize;
+            
+            canvas.style.gridTemplateColumns = `repeat(${gridSize}, ${pixelSize}px)`;
+            canvas.style.gridTemplateRows = `repeat(${gridSize}, ${pixelSize}px)`;
+
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    const pixel = document.createElement('div');
+                    pixel.classList.add('pixel');
+                    pixel.style.width = `${pixelSize}px`;
+                    pixel.style.height = `${pixelSize}px`;
+                    pixel.setAttribute('data-x', x);
+                    pixel.setAttribute('data-y', y);
+                    
+                    pixel.addEventListener('mousedown', () => draw(x, y));
+                    pixel.addEventListener('mouseover', (e) => {
+                        if (e.buttons === 1) draw(x, y);
+                    });
+
+                    canvas.appendChild(pixel);
+                }
+            }
+        }
+
+        // Event-Listener für Feldgrösseränderung
+        gridSizeSelect.addEventListener('change', buildGrid);
+
+        // Raster leeren
+        clearBtn.addEventListener('click', () => {
+            document.querySelectorAll('.pixel').forEach(p => p.style.backgroundColor = 'transparent');
+        });
+
+        // Bild als echtes PNG exportieren und downloaden
+        saveBtn.addEventListener('click', () => {
+            const downloadCanvas = document.createElement('canvas');
+            // Wir speichern das Bild in einer knackigen 512x512 Auflösung ab
+            downloadCanvas.width = CANVAS_DISPLAY_SIZE;
+            downloadCanvas.height = CANVAS_DISPLAY_SIZE;
+            const ctx = downloadCanvas.getContext('2d');
+            
+            const pixelSize = CANVAS_DISPLAY_SIZE / gridSize;
+
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    const pixel = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+                    if (pixel && pixel.style.backgroundColor && pixel.style.backgroundColor !== 'transparent') {
+                        ctx.fillStyle = pixel.style.backgroundColor;
+                        // Zeichnet das Pixel ohne Lücken auf das versteckte Canvas
+                        ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+                    }
+                }
+            }
+
+            // Download auslösen
+            const link = document.createElement('a');
+            link.download = 'pixelrepo-art.png';
+            link.href = downloadCanvas.toDataURL('image/png');
+            link.click();
+        });
+
+        // Initialer Start
+        buildGrid();
+    </script>
+</body>
+</html>
